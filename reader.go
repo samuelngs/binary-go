@@ -25,30 +25,31 @@ import (
 	"log"
 )
 
-var file = map[string][]string{
-	<< range .Assets >>
-	"<< .Filepath >>": []string{ << .Hashes >> },
+var file = map[string][][]byte{
+	<< range .Files ->>"<< .Filepath >>": [][]byte{
+		<< range .Hashes ->>
+		d<< . >>,
+		<<- end >>
+	},
 	<< end >>
 }
 
-var data = map[string][]byte{
-	<< range .Data >>"<< .Hash >>": << .Ref >>,<< end >>
-}
-
 var size = map[string]int{
-	<< range .Sizes >>"<< .Hash >>": << .Size >>,<< end >>
+	<< range .Files ->>
+	"<< .Filepath >>": << .Size >>,
+	<< end >>
 }
 
 // Get returns file in bytes format
 func Get(filename string) ([]byte, error) {
 	var b bytes.Buffer
-	hashes, ok := file[filename]
+	data, ok := file[filename]
 	if !ok {
 		return nil, errors.New("file does not exist")
 	}
 	length := size[filename]
-	for _, hash := range hashes {
-		b.Write(data[hash])
+	for _, part := range data {
+		b.Write(part)
 	}
 	res := make([]byte, length)
 	r := bytes.NewReader(b.Bytes())
@@ -74,20 +75,59 @@ func MustGet(filename string) []byte {
 
 `
 
-var file map[string][]string
-var data map[string][]byte
+// Data struct
+type Data struct {
+	Package string
+	Files   []*File
+}
+
+// File struct
+type File struct {
+	Filepath string
+	Hashes   []string
+	Size     int
+}
+
+// Blocks type
+type Blocks []*Block
+
+// Size returns blocks size
+func (v Blocks) Size() int {
+	var s int
+	for _, b := range v {
+		s += b.Size
+	}
+	return s
+}
+
+// Block struct
+type Block struct {
+	Package string
+	Name    string
+	Hash    string
+	Data    string
+	Size    int
+}
+
+// Blob data
+type Blob struct {
+	Package string
+	Blocks  Blocks
+}
+
+var file map[string][][]byte
 var size map[string]int
 
 // Get returns file in bytes format
 func Get(filename string) ([]byte, error) {
 	var b bytes.Buffer
-	hashes, ok := file[filename]
+	data, ok := file[filename]
 	if !ok {
 		return nil, errors.New("file does not exist")
 	}
 	length := size[filename]
-	for _, hash := range hashes {
-		b.Write(data[hash])
+	for _, part := range data {
+		b.Write(part)
 	}
 	res := make([]byte, length)
 	r := bytes.NewReader(b.Bytes())

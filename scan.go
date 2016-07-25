@@ -3,13 +3,12 @@ package binary
 import (
 	"bytes"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 )
 
 // Scan returns tree node
-func Scan(path string, limits ...int) *Tree {
+func Scan(path string, limits ...int) (*Tree, error) {
 	var limit = int(50 * MEGABYTE)
 	for o := range limits {
 		limit = o
@@ -17,11 +16,11 @@ func Scan(path string, limits ...int) *Tree {
 	}
 	abs, err := filepath.Abs(path)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	f, err := os.Open(abs)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	defer f.Close()
 	tree := new(Tree)
@@ -30,24 +29,24 @@ func Scan(path string, limits ...int) *Tree {
 	tree.dirs = make([]*Tree, 0)
 	tree.assets = make([]*Asset, 0)
 	read(tree, abs, limit)
-	return tree
+	return tree, nil
 }
 
-func read(dir *Tree, path string, limit int) {
+func read(dir *Tree, path string, limit int) error {
 	f, err := os.Open(path)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer f.Close()
 	s, err := f.Stat()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	switch mode := s.Mode(); {
 	case mode.IsDir():
 		di, err := f.Readdir(-1)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		for _, fi := range di {
 			b := bytes.NewBuffer(make([]byte, 0))
@@ -60,9 +59,13 @@ func read(dir *Tree, path string, limit int) {
 				asset := NewAsset(abs, fi.Name(), nil, limit)
 				f, err := os.Open(abs)
 				if err != nil {
-					log.Fatal(err)
+					return err
 				}
-				asset.Load(readfile(f), limit)
+				d, err := readfile(f)
+				if err != nil {
+					return err
+				}
+				asset.Load(d, limit)
 				dir.assets = append(dir.assets, asset)
 			case mode.IsDir():
 				tree := new(Tree)
@@ -76,24 +79,29 @@ func read(dir *Tree, path string, limit int) {
 			}
 		}
 	case mode.IsRegular():
-		dir.assets = append(dir.assets, NewAsset(dir.Pwd(), filepath.Base(f.Name()), readfile(f), limit))
+		d, err := readfile(f)
+		if err != nil {
+			return err
+		}
+		dir.assets = append(dir.assets, NewAsset(dir.Pwd(), filepath.Base(f.Name()), d, limit))
 	}
+	return nil
 }
 
-func readfile(f *os.File) []byte {
+func readfile(f *os.File) ([]byte, error) {
 	fi, err := f.Stat()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	buf := make([]byte, fi.Size())
 	for {
 		n, err := f.Read(buf)
 		if err != nil && err != io.EOF {
-			log.Fatal(err)
+			return nil, err
 		}
 		if n == 0 {
 			break
 		}
 	}
-	return buf
+	return buf, nil
 }

@@ -25,4 +25,5 @@ _testmain.go
 
 *.binary.go
 bin
+output
 test

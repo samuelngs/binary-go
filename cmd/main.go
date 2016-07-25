@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	"log"
 	"runtime"
 
 	"github.com/samuelngs/binary-go"
@@ -10,6 +10,7 @@ import (
 
 var (
 	dir = flag.String("dir", "./", "the file or directory path")
+	out = flag.String("out", "./", "the output directory path")
 	pkg = flag.String("pkg", "binary", "the package name")
 	max = flag.Int("max", int(50*binary.MEGABYTE), "the maximum size of each embedding binary")
 )
@@ -22,10 +23,14 @@ func main() {
 
 	flag.Parse()
 
-	t := binary.Scan(*dir)
-	c := binary.Compose(*pkg, *max, t)
+	c := binary.NewComposer(*dir, *out, *pkg, *max)
 
-	// log.Print(c)
-	fmt.Println(c)
+	if err := c.Scan(); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := c.Compose(); err != nil {
+		log.Fatal(err)
+	}
 
 }
