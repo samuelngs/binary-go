@@ -10,6 +10,7 @@ import (
 
 var (
 	dir = flag.String("dir", "./", "the file or directory path")
+	pkg = flag.String("pkg", "binary", "the package name")
 )
 
 func init() {
@@ -21,8 +22,8 @@ func main() {
 	flag.Parse()
 
 	t := binary.Scan(*dir)
-	c := binary.Compose(t)
+	c := binary.Compose(*pkg, t)
 
-	fmt.Println("result: ", c)
+	fmt.Println(c)
 
 }
