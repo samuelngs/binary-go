@@ -1,0 +1,10 @@
+package binary
+
+// CONST
+const (
+	BYTE     = 1.0
+	KILOBYTE = 1024 * BYTE
+	MEGABYTE = 1024 * KILOBYTE
+	GIGABYTE = 1024 * MEGABYTE
+	TERABYTE = 1024 * GIGABYTE
+)
