@@ -36,12 +36,12 @@ type Blob struct {
 var blocks, reader *template.Template
 
 func init() {
-	b, err := template.New("blocks").Delims("[[", "]]").Parse(DataTmpl)
+	b, err := template.New("blocks").Delims("<<", ">>").Parse(DataTmpl)
 	if err != nil {
 		log.Panic(err)
 	}
 	blocks = b
-	r, err := template.New("reader").Delims("[[", "]]").Parse(ReaderTmpl)
+	r, err := template.New("reader").Delims("<<", ">>").Parse(ReaderTmpl)
 	if err != nil {
 		log.Panic(err)
 	}
