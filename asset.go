@@ -3,22 +3,48 @@ package binary
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
+	"log"
 	"path/filepath"
 )
+
+// Part holds part of the compressed data
+type Part struct {
+	data []byte
+	size int
+	hash string
+}
+
+// Bytes returns part of the data
+func (v *Part) Bytes() []byte {
+	return v.data
+}
+
+// Size returns byte size
+func (v *Part) Size() int {
+	return v.size
+}
+
+// Hash returns data hash
+func (v *Part) Hash() string {
+	return v.hash
+}
 
 // Asset holds file information
 type Asset struct {
 	path string
 	name string
 	data [][]byte
+	size int
 }
 
 // NewAsset creates gzip compressed asset
-func NewAsset(path, name string, content []byte, size int) *Asset {
-	asset := &Asset{path, name, nil}
+func NewAsset(path, name string, content []byte, max int) *Asset {
+	asset := &Asset{path, name, nil, 0}
 	if content != nil {
-		asset.Load(content, size)
+		asset.Load(content, max)
 	}
 	return asset
 }
@@ -34,12 +60,13 @@ func (v *Asset) Compress(c []byte) []byte {
 }
 
 // Load to set content data
-func (v *Asset) Load(c []byte, size int) {
+func (v *Asset) Load(c []byte, max int) {
+	v.size = len(c)
 	byt := [][]byte{}
 	cps := v.Compress(c)
 	buf := bytes.NewBuffer(make([]byte, 0))
 	for i, b := range cps {
-		if i > 0 && i%size == 0 {
+		if i > 0 && i%max == 0 {
 			byt = append(byt, buf.Bytes())
 			buf = bytes.NewBuffer(make([]byte, 0))
 		}
@@ -74,7 +101,41 @@ func (v *Asset) Bytes() []byte {
 	return bytes.Join(v.data, make([]byte, 0))
 }
 
+// Size returns asset size
+func (v *Asset) Size() int {
+	return v.size
+}
+
 // Of returns splitted content by index
 func (v *Asset) Of(i int) []byte {
 	return v.data[i]
+}
+
+// Iter for-loop read data
+func (v *Asset) Iter() []*Part {
+	var l []*Part
+	for _, b := range v.data {
+		h := sha1.Sum(b)
+		l = append(l, &Part{
+			data: b,
+			size: len(b),
+			hash: hex.EncodeToString(h[:]),
+		})
+	}
+	return l
+}
+
+// String returns string data
+func (v *Asset) String() string {
+	b := make([]byte, v.size)
+	r := bytes.NewReader(v.Bytes())
+	gz, err := gzip.NewReader(r)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer gz.Close()
+	if _, err := gz.Read(b); err != nil {
+		log.Fatal(err)
+	}
+	return string(b[:])
 }

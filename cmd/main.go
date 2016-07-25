@@ -21,6 +21,8 @@ func main() {
 	flag.Parse()
 
 	t := binary.Scan(*dir)
+	c := binary.Compose(t)
 
-	fmt.Println(t.Files())
+	fmt.Println("result: ", c)
+
 }

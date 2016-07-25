@@ -76,3 +76,17 @@ func (v *Tree) File(s string) *Asset {
 	}
 	return nil
 }
+
+// Iter for-loop read assets
+func (v *Tree) Iter() []*Asset {
+	var l []*Asset
+	for _, dir := range v.dirs {
+		for _, asset := range dir.assets {
+			l = append(l, asset)
+		}
+	}
+	for _, asset := range v.assets {
+		l = append(l, asset)
+	}
+	return l
+}
