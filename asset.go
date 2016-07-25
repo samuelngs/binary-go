@@ -5,16 +5,21 @@ import (
 	"compress/gzip"
 	"crypto/sha1"
 	"encoding/hex"
-	"fmt"
 	"log"
 	"path/filepath"
 )
 
 // Part holds part of the compressed data
 type Part struct {
+	file string
 	data []byte
 	size int
 	hash string
+}
+
+// File returns filename
+func (v *Part) File() string {
+	return v.file
 }
 
 // Bytes returns part of the data
@@ -55,7 +60,6 @@ func (v *Asset) Compress(c []byte) []byte {
 	zip := gzip.NewWriter(&cmps)
 	zip.Write(c)
 	zip.Close()
-	fmt.Printf(" %-100.100v %10d KB => %10d KB\n", v.path, len(c), len(cmps.Bytes()))
 	return cmps.Bytes()
 }
 
@@ -117,6 +121,7 @@ func (v *Asset) Iter() []*Part {
 	for _, b := range v.data {
 		h := sha1.Sum(b)
 		l = append(l, &Part{
+			file: v.name,
 			data: b,
 			size: len(b),
 			hash: hex.EncodeToString(h[:]),

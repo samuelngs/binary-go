@@ -8,16 +8,15 @@ import (
 )
 
 // DataTmpl template
-const DataTmpl string = `
-package {{ .Package }}
-
-var d{{ .Hash }} = []byte{ {{ .Data }} }
-
+const DataTmpl string = `package [[ .Package ]]
+[[ range .Blocks ]]
+var d[[ .Hash ]] = []byte{[[ .Data ]]}
+[[ end ]]
 `
 
 // ReaderTmpl template
 const ReaderTmpl string = `
-package {{ .Package }}
+package [[ .Package ]]
 
 import (
 	"bytes"
@@ -27,21 +26,17 @@ import (
 )
 
 var file = map[string][]string{
-	{{ range .Assets }}
-	"{{ .Filepath }}": []string{ {{ .Hashes }} },
-	{{ end }}
+	[[ range .Assets ]]
+	"[[ .Filepath ]]": []string{ [[ .Hashes ]] },
+	[[ end ]]
 }
 
 var data = map[string][]byte{
-	{{ range .Data }}
-	"{{ .Hash }}": {{ .Ref }},
-	{{ end }}
+	[[ range .Data ]]"[[ .Hash ]]": [[ .Ref ]],[[ end ]]
 }
 
 var size = map[string]int{
-	{{ range .Sizes }}
-	"{{ .Hash }}": {{ .Size }},
-	{{ end }}
+	[[ range .Sizes ]]"[[ .Hash ]]": [[ .Size ]],[[ end ]]
 }
 
 // Get returns file in bytes format
