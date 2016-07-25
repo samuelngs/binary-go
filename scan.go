@@ -8,12 +8,7 @@ import (
 )
 
 // Scan returns tree node
-func Scan(path string, limits ...int) (*Tree, error) {
-	var limit = int(50 * MEGABYTE)
-	for o := range limits {
-		limit = o
-		break
-	}
+func Scan(path string, limit int) (*Tree, error) {
 	abs, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err

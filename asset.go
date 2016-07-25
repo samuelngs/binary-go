@@ -47,7 +47,7 @@ type Asset struct {
 
 // NewAsset creates gzip compressed asset
 func NewAsset(path, name string, content []byte, max int) *Asset {
-	asset := &Asset{path, name, nil, 0}
+	asset := &Asset{path, name, nil, max}
 	if content != nil {
 		asset.Load(content, max)
 	}
@@ -70,7 +70,7 @@ func (v *Asset) Load(c []byte, max int) {
 	cps := v.Compress(c)
 	buf := bytes.NewBuffer(make([]byte, 0))
 	for i, b := range cps {
-		if i > 0 && i%max == 0 {
+		if i > 0 && len(buf.Bytes()) >= max {
 			byt = append(byt, buf.Bytes())
 			buf = bytes.NewBuffer(make([]byte, 0))
 		}

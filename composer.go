@@ -44,7 +44,7 @@ func NewComposer(dir, out, pkg string, max int) *Composer {
 
 // Scan directory
 func (v *Composer) Scan() error {
-	t, err := Scan(v.dir)
+	t, err := Scan(v.dir, v.max)
 	if err != nil {
 		return err
 	}
