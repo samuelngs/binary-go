@@ -5,143 +5,51 @@ import (
 	"compress/gzip"
 	"errors"
 	"log"
+	"strconv"
+	"strings"
 )
 
-// DataTmpl template
-const DataTmpl string = `package << .Package >>
-<< range .Blocks >>
-var d<< .Hash >> = []byte{<< .Data >>}
-<< end >>
-`
-
-// ReaderTmpl template
-const ReaderTmpl string = `
-package << .Package >>
-
-import (
-	"bytes"
-	"compress/gzip"
-	"errors"
-	"log"
-)
-
-<< range .Blocks >>
-var d<< .Hash >> = []byte{<< .Data >>}
-<< end >>
-
-var file = map[string][][]byte{
-	<< range .Files ->>"<< .Filepath >>": [][]byte{
-		<< range .Hashes ->>
-		d<< . >>,
-		<<- end >>
-	},
-	<< end >>
-}
-
-var size = map[string]int{
-	<< range .Files ->>
-	"<< .Filepath >>": << .Size >>,
-	<< end >>
-}
-
-// Get returns file in bytes format
-func Get(filename string) ([]byte, error) {
-	var b bytes.Buffer
-	data, ok := file[filename]
-	if !ok {
-		return nil, errors.New("file does not exist")
-	}
-	length := size[filename]
-	for _, part := range data {
-		b.Write(part)
-	}
-	res := make([]byte, length)
-	r := bytes.NewReader(b.Bytes())
-	gz, err := gzip.NewReader(r)
-	if err != nil {
-		return nil, err
-	}
-	defer gz.Close()
-	if _, err := gz.Read(res); err != nil {
-		return nil, err
-	}
-	return res, nil
-}
-
-// MustGet to retrieve data, panic if fail
-func MustGet(filename string) []byte {
-	b, err := Get(filename)
-	if err != nil {
-		log.Panic(err)
-	}
-	return b
-}
-
-`
-
-// Data struct
-type Data struct {
-	Package string
-	Files   []*File
-}
-
-// Blocks type
-type Blocks []*Block
-
-// Size returns blocks size
-func (v Blocks) Size() int {
-	var s int
-	for _, b := range v {
-		s += b.Size
-	}
-	return s
-}
-
-// Block struct
-type Block struct {
-	Package string
-	Name    string
-	Hash    string
-	Data    string
-	Size    int
-}
-
-// Blob data
-type Blob struct {
-	Package string
-	Blocks  Blocks
-}
-
-var file map[string][][]byte
+var data map[string][]string
 var size map[string]int
 
-// Get returns file in bytes format
-func Get(filename string) ([]byte, error) {
-	var b bytes.Buffer
-	data, ok := file[filename]
+// Bytes to retrieve file data
+func Bytes(filename string) ([]byte, error) {
+	var r bytes.Buffer
+	defer r.Truncate(0)
+	part, ok := data[filename]
 	if !ok {
 		return nil, errors.New("file does not exist")
 	}
-	length := size[filename]
-	for _, part := range data {
-		b.Write(part)
+	size, ok := size[filename]
+	if !ok {
+		return nil, errors.New("could not find file size information")
 	}
-	res := make([]byte, length)
-	r := bytes.NewReader(b.Bytes())
-	gz, err := gzip.NewReader(r)
+	cont := strings.Join(part, "")
+	arry := strings.Split(cont, " ")
+	for _, v := range arry {
+		n, err := strconv.Atoi(v)
+		if err != nil {
+			return nil, err
+		}
+		b := byte(n)
+		r.WriteByte(b)
+	}
+	data := make([]byte, size)
+	bytr := bytes.NewReader(r.Bytes())
+	gz, err := gzip.NewReader(bytr)
 	if err != nil {
 		return nil, err
 	}
 	defer gz.Close()
-	if _, err := gz.Read(res); err != nil {
+	if _, err := gz.Read(data); err != nil {
 		return nil, err
 	}
-	return res, nil
+	return data, nil
 }
 
-// MustGet to retrieve data, panic if fail
-func MustGet(filename string) []byte {
-	b, err := Get(filename)
+// MustBytes to read bytes data from file
+func MustBytes(filename string) []byte {
+	b, err := Bytes(filename)
 	if err != nil {
 		log.Panic(err)
 	}
