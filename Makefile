@@ -9,4 +9,8 @@ install:
 
 .PHONY: test
 test:
-	bin/binary -dir ./test -out ./output
+	bin/binary -dir ./test -out ./output -pkg test -max 300
+
+.PHONY: clean
+clean:
+	rm -rf output/*

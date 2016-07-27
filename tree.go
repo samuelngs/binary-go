@@ -78,15 +78,18 @@ func (v *Tree) File(s string) *Asset {
 }
 
 // Iter for-loop read assets
-func (v *Tree) Iter() []*Asset {
-	var l []*Asset
-	for _, dir := range v.dirs {
-		for _, asset := range dir.assets {
-			l = append(l, asset)
+func (v *Tree) Iter() <-chan *Asset {
+	ch := make(chan *Asset)
+	go func() {
+		defer close(ch)
+		for _, dir := range v.dirs {
+			for _, asset := range dir.assets {
+				ch <- asset
+			}
 		}
-	}
-	for _, asset := range v.assets {
-		l = append(l, asset)
-	}
-	return l
+		for _, asset := range v.assets {
+			ch <- asset
+		}
+	}()
+	return ch
 }

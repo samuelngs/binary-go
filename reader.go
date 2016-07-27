@@ -25,6 +25,10 @@ import (
 	"log"
 )
 
+<< range .Blocks >>
+var d<< .Hash >> = []byte{<< .Data >>}
+<< end >>
+
 var file = map[string][][]byte{
 	<< range .Files ->>"<< .Filepath >>": [][]byte{
 		<< range .Hashes ->>
@@ -79,13 +83,6 @@ func MustGet(filename string) []byte {
 type Data struct {
 	Package string
 	Files   []*File
-}
-
-// File struct
-type File struct {
-	Filepath string
-	Hashes   []string
-	Size     int
 }
 
 // Blocks type
