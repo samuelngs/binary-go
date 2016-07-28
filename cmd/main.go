@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"log"
-	"runtime"
 
 	"github.com/samuelngs/binary-go"
 )
@@ -15,10 +14,6 @@ var (
 	max = flag.Int("max", int(20*binary.MEGABYTE), "the maximum size of each embedding binary")
 )
 
-func init() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-}
-
 func main() {
 
 	flag.Parse()
@@ -29,7 +24,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := c.Compose(); err != nil {
+	err := make(chan error, 1)
+	go c.Compile(err)
+
+	if e := <-err; e != nil {
 		log.Fatal(err)
 	}
 

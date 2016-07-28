@@ -4,13 +4,12 @@ import (
 	"bytes"
 	"compress/gzip"
 	"errors"
+	"io"
 	"log"
-	"strconv"
 	"strings"
 )
 
 var data map[string][]string
-var size map[string]int
 
 // Bytes to retrieve file data
 func Bytes(filename string) (b []byte, e error) {
@@ -20,36 +19,28 @@ func Bytes(filename string) (b []byte, e error) {
 	if !ok {
 		return nil, errors.New("file does not exist")
 	}
-	size, ok := size[filename]
-	if !ok {
-		return nil, errors.New("could not find file size information")
-	}
 	ch := make(chan []byte, 1)
 	go func() {
 		cont := strings.Join(part, "")
-		arry := strings.Split(cont, " ")
-		for _, v := range arry {
-			n, err := strconv.Atoi(v)
-			if err != nil {
-				e = err
-				ch <- nil
-			}
-			b := byte(n)
-			r.WriteByte(b)
-		}
-		data := make([]byte, size)
-		bytr := bytes.NewReader(r.Bytes())
-		gz, err := gzip.NewReader(bytr)
+		data := []byte(cont)
+		gz, err := gzip.NewReader(bytes.NewBuffer(data))
 		if err != nil {
 			e = err
 			ch <- nil
+			return
 		}
-		defer gz.Close()
-		if _, err := gz.Read(data); err != nil {
+		var buf bytes.Buffer
+		if _, err = io.Copy(&buf, gz); err != nil {
 			e = err
 			ch <- nil
+			return
 		}
-		ch <- data
+		if err := gz.Close(); err != nil {
+			e = err
+			ch <- nil
+			return
+		}
+		ch <- buf.Bytes()
 	}()
 	return <-ch, nil
 }
