@@ -14,6 +14,8 @@ import (
 	"strconv"
 )
 
+const lhex = "0123456789abcdef"
+
 // Delims
 const (
 	ldelim = "{{"
@@ -21,38 +23,57 @@ const (
 )
 
 const utiltmpl = `
+// buffer data
+type buffer struct {
+	err  error
+	data []byte
+}
+
 // Bytes to retrieve file data
-func Bytes(filename string) (b []byte, e error) {
+func Bytes(filename string) ([]byte, error) {
 	var r bytes.Buffer
 	defer r.Truncate(0)
-	part, ok := data[filename]
+	parts, ok := data[filename]
 	if !ok {
 		return nil, errors.New("file does not exist")
 	}
-	ch := make(chan []byte, 1)
+	ch := make(chan *buffer, 1)
 	go func() {
-		cont := strings.Join(part, "")
-		data := []byte(cont)
-		gz, err := gzip.NewReader(bytes.NewBuffer(data))
+		var zbuf bytes.Buffer
+		defer zbuf.Truncate(0)
+		for _, s := range parts {
+			zbuf.Write([]byte(s))
+		}
+		gz, err := gzip.NewReader(&zbuf)
 		if err != nil {
-			e = err
-			ch <- nil
+			ch <- &buffer{
+				err: err,
+			}
 			return
 		}
 		var buf bytes.Buffer
+		defer buf.Truncate(0)
 		if _, err = io.Copy(&buf, gz); err != nil {
-			e = err
-			ch <- nil
+			ch <- &buffer{
+				err: err,
+			}
 			return
 		}
 		if err := gz.Close(); err != nil {
-			e = err
-			ch <- nil
+			ch <- &buffer{
+				err: err,
+			}
 			return
 		}
-		ch <- buf.Bytes()
+		ch <- &buffer{
+			data: buf.Bytes(),
+		}
 	}()
-	return <-ch, nil
+	res := <-ch
+	if err := res.err; err != nil {
+		return nil, res.err
+	}
+	return res.data, nil
 }
 
 // MustBytes to read bytes data from file
@@ -76,9 +97,8 @@ import (
 	"bytes"
 	"compress/gzip"
 	"errors"
-	"log"
 	"io"
-	"strings"
+	"log"
 )
 
 var data = map[string][]string{
@@ -290,7 +310,10 @@ func (v *Composer) process(fname, fpath string, data []byte) ([]string, error) {
 			bbuf.Truncate(0)
 			n++
 		}
-		fmt.Fprintf(&bbuf, "\\x%02x", b)
+		buf := []byte(`\x00`)
+		buf[2] = lhex[b/16]
+		buf[3] = lhex[b%16]
+		bbuf.Write(buf)
 	}
 	hash, err := v.part(fname, fpath, n+1, bbuf.Bytes())
 	if err != nil {
