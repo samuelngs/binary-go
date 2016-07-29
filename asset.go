@@ -2,6 +2,8 @@ package binary
 
 import (
 	"bufio"
+	"crypto/md5"
+	"encoding/hex"
 	"io"
 	"log"
 	"os"
@@ -58,22 +60,16 @@ func (v *Asset) Pipe() <-chan []byte {
 		log.Fatal(err)
 	}
 	rd := bufio.NewReader(fe)
-	ch := make(chan []byte, fi.Size())
+	ch := make(chan []byte, 1)
 	go func() {
 		defer fe.Close()
 		defer close(ch)
-		buf := make([]byte, 4<<20)
-		for {
-			n, err := rd.Read(buf[:cap(buf)])
-			buf = buf[:n]
-			if err != nil && err != io.EOF {
-				log.Fatal(err)
-			}
-			if n == 0 {
-				break
-			}
-			ch <- buf
+		buf := make([]byte, fi.Size())
+		_, err := rd.Read(buf)
+		if err != nil && err != io.EOF {
+			log.Fatal(err)
 		}
+		ch <- buf
 	}()
 	return ch
 }
@@ -90,4 +86,26 @@ func (v *Asset) Size() int64 {
 		log.Fatal(err)
 	}
 	return fi.Size()
+}
+
+// Md5 returns md5 hash
+func (v *Asset) Md5() (string, error) {
+	fe, err := os.Open(v.path)
+	if err != nil {
+		return "", err
+	}
+	fi, err := fe.Stat()
+	if err != nil {
+		log.Fatal(err)
+	}
+	ch := make(chan string, 1)
+	go func() {
+		defer fe.Close()
+		b := make([]byte, fi.Size())
+		fe.Read(b)
+		sum := md5.New()
+		sum.Write(b)
+		ch <- hex.EncodeToString(sum.Sum(nil))
+	}()
+	return <-ch, nil
 }

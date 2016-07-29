@@ -9,6 +9,7 @@ import (
 )
 
 var data map[string][]string
+var size map[string]int64
 
 // buffer data
 type buffer struct {
