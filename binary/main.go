@@ -11,7 +11,7 @@ var (
 	dir = flag.String("dir", "./", "the file or directory path")
 	out = flag.String("out", "./", "the output directory path")
 	pkg = flag.String("pkg", "binary", "the package name")
-	max = flag.Int("max", int(20*binary.MEGABYTE), "the maximum size of each embedding binary")
+	max = flag.Int("max", int(20*binary.MEGABYTE), "the maximum size of each embedding binary (default: 20MB)")
 )
 
 func main() {
