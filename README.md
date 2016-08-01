@@ -38,8 +38,6 @@ Output
 ```
 package test
 
-package test
-
 import (
 	"bytes"
 	"compress/gzip"
